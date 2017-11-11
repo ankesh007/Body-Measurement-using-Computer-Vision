@@ -8,11 +8,12 @@ import math
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
 refPt = []
-r=3.0 #number of squares
+r1=5 #for affine correction
+r2=2 #for measurement
 ref_ht=2.84 
 rectangle_row=9
 rectangle_col=6
-square_size=int(r+1)
+# square_size=int(r+1)
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 metre_pixel_x=0
 metre_pixel_y=0
@@ -57,7 +58,8 @@ def get_distance(image):
 	return 0
 
 # returns 4 points at square_size of checkboard 
-def chess_board_corners(gray):
+def chess_board_corners(gray,r):
+	square_size=int(r+1)
 	ret, corners = cv2.findChessboardCorners(gray, (rectangle_row,rectangle_col),None)
 	corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
 	coordinates=[]
@@ -71,7 +73,7 @@ def chess_board_corners(gray):
 def affine_correct(image):
 
 	gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY) 
-	refPt=chess_board_corners(gray)
+	refPt=chess_board_corners(gray,r1)
 	pt1=np.asarray(refPt,dtype=np.float32)
 	dist=(refPt[1][0]-refPt[0][0])
 	refPt[1]=(refPt[0][0]+dist,refPt[0][1])
@@ -84,10 +86,14 @@ def affine_correct(image):
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="Path to the image")
+ap.add_argument("-a", "--affine_mode", required=True, help="To perform Affine Corrections")
 args = vars(ap.parse_args())
  
 # load the image, clone it, and setup the mouse callback function
 image = cv2.imread(args["image"])
+affine_correct_flag= (args["affine_mode"])
+# print type(affine_correct)
+# exit(1)
 clone = image.copy()
 gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 cv2.namedWindow("image",cv2.WINDOW_NORMAL)
@@ -96,15 +102,16 @@ cv2.setMouseCallback("image", click_and_crop)
 
 # print chess_board_corners(gray)
 dst=np.copy(image) # created to ease affine_correct mode
-dst=affine_correct(dst)
+if(affine_correct_flag=='True'):
+	dst=affine_correct(dst)
 gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
-temp=chess_board_corners(gray2)
+temp=chess_board_corners(gray2,r2)
 # print temp
 # for i in range(4):
 # 	squ_point(dst, int(temp[i][0]), int(temp[i][1]), i)
 cv2.imshow("image",dst)
-metre_pixel_x=(r*ref_ht)/(abs(temp[0][0]-temp[1][0]))
-metre_pixel_y=(r*ref_ht)/(abs(temp[0][1]-temp[2][1]))
+metre_pixel_x=(r2*ref_ht)/(abs(temp[0][0]-temp[1][0]))
+metre_pixel_y=(r2*ref_ht)/(abs(temp[0][1]-temp[2][1]))
 print get_distance(dst)
 # print metre_pixel_y
 # print metre_pixel_x
