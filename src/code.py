@@ -95,7 +95,8 @@ cv2.resizeWindow('image', 1000,800)
 cv2.setMouseCallback("image", click_and_crop)
 
 # print chess_board_corners(gray)
-dst=affine_correct(image)
+dst=np.copy(image) # created to ease affine_correct mode
+dst=affine_correct(dst)
 gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
 temp=chess_board_corners(gray2)
 # print temp
