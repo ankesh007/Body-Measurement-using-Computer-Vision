@@ -17,6 +17,7 @@ rectangle_col=6
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 metre_pixel_x=0
 metre_pixel_y=0
+window_name1="image"
 
 def squ_point(img, x, y, k):
 	time_pass=50
@@ -38,7 +39,7 @@ def get_distance(image):
 	refPt=[]
 
 	while True:
-		cv2.imshow("image", image)
+		cv2.imshow(window_name1, image)
 		if(len(refPt)==2):
 			break
 
@@ -96,20 +97,21 @@ affine_correct_flag= (args["affine_mode"])
 # exit(1)
 clone = image.copy()
 gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-cv2.namedWindow("image",cv2.WINDOW_NORMAL)
-cv2.resizeWindow('image', 1000,800)
-cv2.setMouseCallback("image", click_and_crop)
+cv2.namedWindow(window_name1,cv2.WINDOW_NORMAL)
+cv2.resizeWindow(window_name1, 1000,800)
+cv2.setMouseCallback(window_name1, click_and_crop)
 
 # print chess_board_corners(gray)
 dst=np.copy(image) # created to ease affine_correct mode
 if(affine_correct_flag=='True'):
 	dst=affine_correct(dst)
+	print "Affine Corrected"
 gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
 temp=chess_board_corners(gray2,r2)
 # print temp
 # for i in range(4):
 # 	squ_point(dst, int(temp[i][0]), int(temp[i][1]), i)
-cv2.imshow("image",dst)
+cv2.imshow(window_name1,dst)
 metre_pixel_x=(r2*ref_ht)/(abs(temp[0][0]-temp[1][0]))
 metre_pixel_y=(r2*ref_ht)/(abs(temp[0][1]-temp[2][1]))
 print get_distance(dst)
