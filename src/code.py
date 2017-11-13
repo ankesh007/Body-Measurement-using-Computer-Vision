@@ -59,22 +59,23 @@ def get_distance(image):
 	return 0
 
 # returns 4 points at square_size of checkboard 
-def chess_board_corners(gray,r):
+def chess_board_corners(image,gray,r):
 	square_size=int(r+1)
-	ret, corners = cv2.findChessboardCorners(gray, (rectangle_row,rectangle_col),None)
+	ret, corners = cv2.findChessboardCorners(image, (rectangle_row,rectangle_col),None)
 	corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
 	coordinates=[]
 	coordinates.append((corners2[0,0,0],corners2[0,0,1]))
 	coordinates.append((corners2[square_size-1,0,0],corners2[square_size-1,0,1]))
 	coordinates.append((corners2[rectangle_row*(square_size-1),0,0],corners2[rectangle_row*(square_size-1),0,1]))
 	coordinates.append((corners2[rectangle_row*(square_size-1)+square_size-1,0,0],corners2[rectangle_row*(square_size-1)+square_size-1,0,1]))
+	print coordinates
 	return coordinates
 
 # receives an image and performs affine transform using chess_board_corners
 def affine_correct(image):
 
 	gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY) 
-	refPt=chess_board_corners(gray,r1)
+	refPt=chess_board_corners(image,gray,r1)
 	pt1=np.asarray(refPt,dtype=np.float32)
 	dist=(refPt[1][0]-refPt[0][0])
 	refPt[1]=(refPt[0][0]+dist,refPt[0][1])
@@ -93,12 +94,11 @@ args = vars(ap.parse_args())
 # load the image, clone it, and setup the mouse callback function
 image = cv2.imread(args["image"])
 affine_correct_flag= (args["affine_mode"])
-# print type(affine_correct)
-# exit(1)
+
 clone = image.copy()
 gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 cv2.namedWindow(window_name1,cv2.WINDOW_NORMAL)
-cv2.resizeWindow(window_name1, 1000,800)
+cv2.resizeWindow(window_name1, image.shape[0],image.shape[1])
 cv2.setMouseCallback(window_name1, click_and_crop)
 
 # print chess_board_corners(gray)
@@ -107,16 +107,20 @@ if(affine_correct_flag=='True'):
 	dst=affine_correct(dst)
 	print "Affine Corrected"
 gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
-temp=chess_board_corners(gray2,r2)
-# print temp
-# for i in range(4):
-# 	squ_point(dst, int(temp[i][0]), int(temp[i][1]), i)
+temp=chess_board_corners(dst,gray2,r2)
+
+
+
+ret, corners = cv2.findChessboardCorners(dst, (rectangle_row,rectangle_col),None)
+corners2 = cv2.cornerSubPix(gray2,corners,(11,11),(-1,-1),criteria)
+print corners2
+dst = cv2.drawChessboardCorners(dst, (9,6), corners2, ret)
+
+
 cv2.imshow(window_name1,dst)
 metre_pixel_x=(r2*ref_ht)/(abs(temp[0][0]-temp[1][0]))
 metre_pixel_y=(r2*ref_ht)/(abs(temp[0][1]-temp[2][1]))
 print get_distance(dst)
-# print metre_pixel_y
-# print metre_pixel_x
 
 cv2.waitKey(0)
 cv2.imwrite('dst.jpg',dst)
