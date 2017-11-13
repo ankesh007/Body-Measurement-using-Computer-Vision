@@ -9,11 +9,12 @@ print img.shape
 body_cascade=cv2.CascadeClassifier('haarcascade_fullbody.xml')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 body = body_cascade.detectMultiScale(gray,1.01,5)
+
 lar = -1
 p1_x = 100
 p1_y = 100
-p2_x = 1000
-p2_y = 2000
+p2_x = int((img.shape[0]))
+p2_y = int(img.shape[1]*0.75)
 # for (x,y,w,h) in body:
 # 	if lar < w*h :
 # 		lar = w*h
