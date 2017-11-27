@@ -124,22 +124,22 @@ def segmenter(img):
     # cv2.imshow("nn",img)
     # cv2.waitKey(0)
 
-    while True:
-        tola = cv2.getTrackbarPos('Keying tol low', 'controls')
-        tolb = cv2.getTrackbarPos('Keying tol high', 'controls')
-        low_thresh = cv2.getTrackbarPos('Mask low Thresh (x100)', 'controls')/100
-        high_thresh = cv2.getTrackbarPos('Mask high Thresh (x100)', 'controls')/100
-        erode_sz = cv2.getTrackbarPos('Erode size', 'controls')
-        sz = cv2.getTrackbarPos('BiLat size', 'controls')
-        space  = cv2.getTrackbarPos('BiLat space', 'controls')
-        sat_mul_lo  = cv2.getTrackbarPos('Sat mul low', 'controls')
-        sat_mul_hi  = cv2.getTrackbarPos('Sat mul high', 'controls')
-        scale_blur  = cv2.getTrackbarPos('Light mask strength', 'controls')
-        blur_size  = cv2.getTrackbarPos('Light mask size', 'controls')
+    # while True:
+    tola = cv2.getTrackbarPos('Keying tol low', 'controls')
+    tolb = cv2.getTrackbarPos('Keying tol high', 'controls')
+    low_thresh = cv2.getTrackbarPos('Mask low Thresh (x100)', 'controls')/100
+    high_thresh = cv2.getTrackbarPos('Mask high Thresh (x100)', 'controls')/100
+    erode_sz = cv2.getTrackbarPos('Erode size', 'controls')
+    sz = cv2.getTrackbarPos('BiLat size', 'controls')
+    space  = cv2.getTrackbarPos('BiLat space', 'controls')
+    sat_mul_lo  = cv2.getTrackbarPos('Sat mul low', 'controls')
+    sat_mul_hi  = cv2.getTrackbarPos('Sat mul high', 'controls')
+    scale_blur  = cv2.getTrackbarPos('Light mask strength', 'controls')
+    blur_size  = cv2.getTrackbarPos('Light mask size', 'controls')
 
-        key_mask = get_mask( img, key_param[0], tola, tolb, low_thresh, high_thresh, sz, space, erode_sz)
-        cv2.imshow("image",key_mask*255)
-        cv2.waitKey(300)
+    key_mask = get_mask( img, key_param[0], tola, tolb, low_thresh, high_thresh, sz, space, erode_sz)
+        # cv2.imshow("image",key_mask*255)
+        # cv2.waitKey(300)
     cv2.imwrite('lolu.jpg',key_mask*255)
     return key_mask*255
 

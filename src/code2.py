@@ -32,7 +32,7 @@ def click_and_crop(event, x, y, flags, param):
  	if event == cv2.EVENT_LBUTTONDOWN:
 		pass
 	elif event == cv2.EVENT_LBUTTONUP:
-		refPt.append((x, y))
+		refPt.append4((x, y))
 
 # returns real-world distance between 2 points selected in image
 def get_distance(image):
@@ -43,8 +43,8 @@ def get_distance(image):
 		cv2.imshow(window_name1, image)
 		if(len(refPt)==2):
 			break
-
-		key = cv2.waitKey(1) & 0xFF
+		# print refPt
+		k = cv2.waitKey(1) & 0xFF
 	cv2.destroyAllWindows()
 
 	if(len(refPt)==2):
@@ -56,9 +56,43 @@ def get_distance(image):
 		actual_x=metre_pixel_x*pixel_dist_x
 
 		actual_dist=math.sqrt(actual_y**2 + actual_x**2)
+		print actual_dist
 		return actual_dist
 
 	return 0
+
+def get_points(img):
+    points= []
+    img_to_show = img.copy()
+    def draw_circle(event,x,y,flags,param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            cv2.circle(img_to_show,(x,y),2,(255,0,0),-1)
+            points.append([x,y])
+    cv2.namedWindow('image',cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('image', img.shape[0],img.shape[1])
+    cv2.setMouseCallback('image',draw_circle)
+    while(1):
+        cv2.imshow('image',img_to_show)
+        k = cv2.waitKey(20) & 0xFF
+        if k == 27:
+            break
+    cv2.destroyAllWindows()
+    return points
+
+def get_real_world_distance(points,m_x,m_y):
+	pixel_dist_y=abs(points[0][1]-points[1][1])
+	pixel_dist_x=abs(points[0][0]-points[1][0])
+	actual_y=m_y*pixel_dist_y
+	actual_x=m_x*pixel_dist_x
+	actual_dist=math.sqrt(actual_y**2 + actual_x**2)
+	
+
+def get_waist(img,m_x,m_y):
+	points=get_points(img)
+	actual_dist=get_real_world_distance(points,m_x,m_y)
+	print actual_dist
+	return actual_dist
+
 
 # returns 4 points at square_size of checkboard 
 def chess_board_corners(image,gray,r):
@@ -123,7 +157,7 @@ def drawCircle(img, pt, state):
 	# if()
 	img=img.astype(np.uint8)
 	img_col = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
-	cv2.circle(img_col,(pt[0],pt[1]),10,(255,0,0),-1)
+	cv2.circle(img_col,(pt[0],pt[1]),10,(255,0,255),-1)
 	if(state==0):
 		while(1):
 			cv2.imshow('img',img_col)
@@ -167,6 +201,22 @@ def first_sharp_fall(mask, x, y, win_size,thres):
 			break
 	return (x_curr,y_curr)
 
+def get_wrist(mask):
+	thres = 20 * 255
+	wrist_x_left = np.nonzero(np.sum(mask,axis=0) > thres)[0][0] 
+	wrist_y_left = np.argmax(mask[:,wrist_x_left])
+	circled = drawCircle(mask,(wrist_x_left,wrist_y_left),1)
+	nonzero = len(np.nonzero(np.sum(mask,axis=0) > thres)[0])
+	wrist_x_right = np.nonzero(np.sum(mask,axis=0) > thres)[0][nonzero - 1] 
+	wrist_y_right = np.argmax(mask[:,wrist_x_right])
+	circled = drawCircle(circled,(wrist_x_right,wrist_y_right),1)
+	cv2.imwrite("detectedwrist.jpg",circled)
+	return (wrist_x_left,wrist_y_left),(wrist_x_right,wrist_y_right)
+
+
+	# print "hi"
+
+
 def analyze_chessboard(image,affine_correct_flag):
 	clone = image.copy()
 	gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
@@ -202,19 +252,49 @@ def pixel_to_distance(p1,mx,my):
 	return math.sqrt((p1[0]*mx)**2+(p1[1]*my)**2)
 
 
-def measure_distance(segmented_image,metre_pixel_x,metre_pixel_y):
+def measure_distance(segmented_image,segmented_arm_image,arm_spread_image,waist_image,metre_pixel_x,metre_pixel_y):
+	waist_a = get_points(arm_spread_image)
+	waist_b = get_points(waist_image)
+	dist1=getDistance(waist_a[0],waist_a[1])
+	dist1=pixel_to_distance(dist1,metre_pixel_x,metre_pixel_y)
+	dist2=getDistance(waist_b[0],waist_b[1])
+	dist2=pixel_to_distance(dist2,metre_pixel_x,metre_pixel_y)
+	dist1 = dist1/2
+	dist2 = dist2/2
+	perimeter = 2 * 3.1415 * math.sqrt((dist1*dist1 + dist2*dist2)/2)
+	print "waist",perimeter
+
 	head_pt = getHeadPoint(segmented_image)
 
 	segmented_image = drawCircle(segmented_image, (head_pt[0],head_pt[1]), 1)
 	cv2.imwrite('detected2.jpg', segmented_image)
-	left_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], -1,12)
-	right_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], 1,12)
-	right_shoulder = first_sharp_fall(segmented_image, right_fall[0], right_fall[1], 20,1.5)
-	left_shoulder = first_sharp_fall(segmented_image, left_fall[0], left_fall[1], -20,1.5)
+
+	left_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], -2,6.5)
+	right_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], 2,7)
 	segmented_image = drawCircle(segmented_image, (right_fall[0], right_fall[1]), 1)
 	segmented_image = drawCircle(segmented_image, (left_fall[0], left_fall[1]), 1)
+	points = get_points(segmented_image)
+	if len(points) != 0:
+		left_fall = points[0]
+		right_fall = points[1]
+	
+	right_shoulder = first_sharp_fall(segmented_image, right_fall[0], right_fall[1], 20,1.5)
+	left_shoulder = first_sharp_fall(segmented_image, left_fall[0], left_fall[1], -20,1.5)
 	segmented_image = drawCircle(segmented_image, (right_shoulder[0], right_shoulder[1]), 1)
 	segmented_image = drawCircle(segmented_image, (left_shoulder[0], left_shoulder[1]), 1)
+	points = get_points(segmented_image)
+	if len(points) != 0:
+		left_shoulder = points[0]
+		right_shoulder = points[1]
+
+	left_wrist,right_wrist = get_wrist(segmented_arm_image)
+	segmented_image = drawCircle(segmented_arm_image, (left_wrist[0], left_wrist[1]), 1)
+	segmented_image = drawCircle(segmented_arm_image, (right_wrist[0], right_wrist[1]), 1)
+	points = get_points(segmented_image)
+	if len(points) != 0:
+		left_wrist = points[0]
+		right_wrist = points[1]
+
 	cv2.imwrite('detected.jpg', segmented_image)
 
 	
@@ -224,32 +304,36 @@ def measure_distance(segmented_image,metre_pixel_x,metre_pixel_y):
 	dist2=pixel_to_distance(dist2,metre_pixel_x,metre_pixel_y)
 	dist3=getDistance(left_fall,right_fall)
 	dist3=pixel_to_distance(dist3,metre_pixel_x,metre_pixel_y)
+	dist4=getDistance(left_wrist,left_shoulder)
+	dist4=pixel_to_distance(dist4,metre_pixel_x,metre_pixel_y)
+	dist5=getDistance(right_wrist,right_shoulder)
+	dist5=pixel_to_distance(dist5,metre_pixel_x,metre_pixel_y)
+	dist_sleeve = (dist5+dist4)/2.0
 	dist=dist1+dist2+dist3
 	dist_tuple=dist1,dist2,dist3
-	print dist,dist_tuple
+	print "Shoulder Length",dist
+	print "Sleeve Length", dist_sleeve,(dist4,dist5)
 	# dist=dist3+dist2+dist1
 	# pixel_to_distance(dist,metre_pixel_x,metre_pixel_y)	
-
 
 def main():
 
 	ap = argparse.ArgumentParser()
 	ap.add_argument("-i1", "--image1", required=True, help="Path to the checkboard_image")
 	ap.add_argument("-i2", "--image2", required=True, help="Path to the arm_spread_image")
+	ap.add_argument("-i3", "--image3", required=True, help="Path to the waist_image")
 	ap.add_argument("-a", "--affine_mode", required=True, help="To perform Affine Corrections")
 	args = vars(ap.parse_args())
 	 
 	# load the image, clone it, and setup the mouse callback function
 	image = cv2.imread(args["image1"])
 	arm_spread_image=cv2.imread(args["image2"])
+	waist_image = cv2.imread(args["image3"])
 	
-	print "image",image.shape
-	print "arm-spread",arm_spread_image.shape
 	affine_correct_flag= (args["affine_mode"])
-	# exit(1)
 
 	metre_pixel_x,metre_pixel_y,coordinate,affine_correct_parameters=analyze_chessboard(image,affine_correct_flag)
-	# print "Couldnt analyze"
+	
 	segmented_image=segment.segmenter(image)
 	print "Segmentation Completed 1"
 
@@ -258,19 +342,23 @@ def main():
 
 	cv2.imwrite("first.jpg",segmented_image)
 	cv2.imwrite("second.jpg",segmented_arm_image)
+	
 
 	block_cut = np.zeros(segmented_image.shape)
 	block_cut[coordinate[0][1]:coordinate[1][1],coordinate[0][0]:coordinate[1][0]] = 1
 	segmented_image=segmented_image*block_cut
 
 	if(affine_correct_flag=='True'):
-		print affine_correct_flag
+		arm_spread_image=affine_correct(arm_spread_image,affine_correct_parameters)
+		waist_image=affine_correct(waist_image,affine_correct_parameters)
 		segmented_image=affine_correct(segmented_image,affine_correct_parameters)
 		print "Affine Corrected"
 
+	# detect_wrist(segmented_arm_image)
+	
 	# cv2.imwrite("affine_corrected.jpg",segmented_image)
 
-	measure_distance(segmented_image,metre_pixel_x,metre_pixel_y)
+	measure_distance(segmented_image,segmented_arm_image,arm_spread_image,waist_image,metre_pixel_x,metre_pixel_y)
 
 if __name__=="__main__":
 	main()
