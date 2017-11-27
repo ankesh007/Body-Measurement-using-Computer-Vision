@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import math
 import sys
 import segment
-# import sys
  
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
@@ -49,7 +48,7 @@ def get_distance(image):
 	cv2.destroyAllWindows()
 
 	if(len(refPt)==2):
-		print refPt
+		# print refPt
 		pixel_dist_y=abs(refPt[0][1]-refPt[1][1])
 		pixel_dist_x=abs(refPt[0][0]-refPt[1][0])
 
@@ -76,7 +75,11 @@ def chess_board_corners(image,gray,r):
 
 # receives an image and performs affine transform using chess_board_corners
 def affine_correct_params(image):
-	gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY) 
+
+	gray=np.copy(image)
+
+	if(len(image.shape)>2):
+		gray=cv2.cvtColor(gray,cv2.COLOR_BGR2GRAY) 
 	refPt=chess_board_corners(image,gray,r1)
 	pt1=np.asarray(refPt,dtype=np.float32)
 	dist=(refPt[1][0]-refPt[0][0])
@@ -115,9 +118,12 @@ def grub_cut(img,refPt):
 	return img
 
 def drawCircle(img, pt, state):
-	print pt
+
+	# print img.shape
+	# if()
+	img=img.astype(np.uint8)
 	img_col = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
-	cv2.circle(img_col,(pt[0],pt[1]),20,(255,0,0),-1)
+	cv2.circle(img_col,(pt[0],pt[1]),10,(255,0,0),-1)
 	if(state==0):
 		while(1):
 			cv2.imshow('img',img_col)
@@ -133,27 +139,25 @@ def getHeadPoint(mask):
 
 	shape=mask.shape
 	y_head=(np.nonzero(np.sum(mask,axis=1)))[0][0]
-	print y_head
+	# print y_head
 	x_head=np.argmax(mask[y_head])
 	return (x_head,y_head)
 
 def first_sharp_fall(mask, x, y, win_size,thres):
-
-	y0 = np.nonzero(mask[:,x+1*win_size])[0][0]
-	y0_diff = np.nonzero(mask[:,x+1*win_size])[0][0] - y
-	x_curr = x+2*win_size
+	x_curr = x
+	y0 = np.nonzero(mask[:,x_curr])[0][0]
+	y0_diff = 10000
+	x_curr = x+1*win_size
+	y_curr = y0
 	while True:
+		if(len(np.nonzero(mask[:,x_curr])[0])==0):
+			x_curr = x_curr-1*win_size
+			break
 		y_curr = np.nonzero(mask[:,x_curr])[0][0]
 		y_diff = y_curr - y0
-		print str(x_curr) + " " + str(y_diff)+" " + str(y0_diff)
-		print (y_diff/y0_diff)
-
-		if y0_diff!=0:
+		if (y0_diff!=0):
 			if((float(y_diff)/float(y0_diff))>thres):
 				break
-
-		if(len(np.nonzero(mask[:,x_curr+1*win_size]))==0):
-			break
 		x_curr=x_curr+1*win_size
 		y0_diff=y_diff
 		y0=y_curr
@@ -163,94 +167,110 @@ def first_sharp_fall(mask, x, y, win_size,thres):
 			break
 	return (x_curr,y_curr)
 
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True, help="Path to the image")
-ap.add_argument("-a", "--affine_mode", required=True, help="To perform Affine Corrections")
-args = vars(ap.parse_args())
- 
-# load the image, clone it, and setup the mouse callback function
-image = cv2.imread(args["image"])
-print image.shape
-# exit(1)
-affine_correct_flag= (args["affine_mode"])
+def analyze_chessboard(image,affine_correct_flag):
+	clone = image.copy()
+	gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+	cv2.setMouseCallback(window_name1, click_and_crop)
 
-clone = image.copy()
-gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-# cv2.namedWindow(window_name1,cv2.WINDOW_NORMAL)
-# cv2.resizeWindow(window_name1, image.shape[0],image.shape[1])
-cv2.setMouseCallback(window_name1, click_and_crop)
+	dst=np.copy(image) # created to ease affine_correct mode
+	affine_correct_parameters=None
+	if (affine_correct_flag=='True'):
+		affine_correct_parameters=affine_correct_params(dst)
 
-# print chess_board_corners(gray)
-# exit(1)
-dst=np.copy(image) # created to ease affine_correct mode
-affine_correct_parameters=None
-if (affine_correct_flag==True):
-	affine_correct_parameters=affine_correct_params(dst)
-gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
-temp=chess_board_corners(dst,gray2,r2)
+	gray2 = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY) 
+	temp=chess_board_corners(dst,gray2,r2)
 
+	ret, corners = cv2.findChessboardCorners(dst, (rectangle_row,rectangle_col),None)
+	corners2 = cv2.cornerSubPix(gray2,corners,(11,11),(-1,-1),criteria)
+	dst = cv2.drawChessboardCorners(dst, (9,6), corners2, ret)
 
-ret, corners = cv2.findChessboardCorners(dst, (rectangle_row,rectangle_col),None)
-corners2 = cv2.cornerSubPix(gray2,corners,(11,11),(-1,-1),criteria)
-# print corners2
-dst = cv2.drawChessboardCorners(dst, (9,6), corners2, ret)
-# cv2.imshow(window_name1,dst)
-metre_pixel_x=(r2*ref_ht)/(abs(temp[0][0]-temp[1][0]))
-metre_pixel_y=(r2*ref_ht)/(abs(temp[0][1]-temp[2][1]))
-#print get_distance(dst)
-# sep=(coordinate[1][0]-coordinate[0][0])
-coordinate=[temp[0],temp[1]]
-# 6X6 square co-ord
+	metre_pixel_x=(r2*ref_ht)/(abs(temp[0][0]-temp[1][0]))
+	metre_pixel_y=(r2*ref_ht)/(abs(temp[0][1]-temp[2][1]))
 
-sep=((coordinate[1][0]-coordinate[0][0])/6.0)*9.0
-# print dst.shape[1]
-# print sep
-# exit(1)
-coordinate[0]=(max(0,int(coordinate[0][0]-2*sep)),0)
-coordinate[1]=(min(dst.shape[1],int(coordinate[1][0]+3.5*sep)),dst.shape[0])
+	coordinate=[temp[0],temp[1]]
+	# 6X6 square co-ord
+	sep=((coordinate[1][0]-coordinate[0][0])/6.0)*9.0
 
-block_cut = np.zeros(dst.shape)
-block_cut[coordinate[0][1]:coordinate[1][1],coordinate[0][0]:coordinate[1][0],:] = 1
-segmented_image=segment.segmenter(dst)
-cv2.imwrite("sake.jpg",segmented_image)
+	coordinate[0]=(max(0,int(coordinate[0][0]-2*sep)),0)
+	coordinate[1]=(min(dst.shape[1],int(coordinate[1][0]+3.5*sep)),dst.shape[0])
+	return metre_pixel_x,metre_pixel_y,coordinate,affine_correct_parameters
 
-if(affine_correct_flag=='True'):
-	segmented_image=affine_correct(segmented_image,affine_correct_parameters)
-	print "Affine Corrected"
+def getDistance(p1,p2):
+	return (p1[0]-p2[0],p1[1]-p2[1])
 
-head_pt = getHeadPoint(segmented_image)
-
-left_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], -3,10)
-
-right_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], 3,10)
-
-right_shoulder = first_sharp_fall(segmented_image, right_fall[0], right_fall[1], 20,1.5)
-left_shoulder = first_sharp_fall(segmented_image, left_fall[0], left_fall[1], -20,1.5)
-
-segmented_image = drawCircle(segmented_image, (head_pt[0],head_pt[1]), 1)
-segmented_image = drawCircle(segmented_image, (right_fall[0], right_fall[1]), 1)
-segmented_image = drawCircle(segmented_image, (left_fall[0], left_fall[1]), 1)
-segmented_image = drawCircle(segmented_image, (right_shoulder[0], right_shoulder[1]), 1)
-segmented_image = drawCircle(segmented_image, (left_shoulder[0], left_shoulder[1]), 1)
-
-cv2.imwrite('detected.jpg', segmented_image)
-# dst2=grub_cut(np.copy(dst.astype(np.uint8)),coordinate)
-# dst2=dst2*block_cut
+def pixel_to_distance(p1,mx,my):
+	return math.sqrt((p1[0]*mx)**2+(p1[1]*my)**2)
 
 
+def measure_distance(segmented_image,metre_pixel_x,metre_pixel_y):
+	head_pt = getHeadPoint(segmented_image)
 
-# cv2.rectangle(dst2,(coordinate[0][0],coordinate[0][1]),(coordinate[1][0],coordinate[1][1]),(255,0,0),2)
-# print block_cut.shape,"blockcut"
-# print dst.shape,"dst"
-# print block_cut.shape,"blockcut"
-# cv2.waitKey(0)
-# cv2.imwrite('dst.jpg',dst)
-# cv2.imwrite('image.jpg',dst2)
-# x_range = np.arange(coordinate[0][0], coordinate[1][0]+1)
-# y_range = np.arange(coordinate[0][1], coordinate[1][1]+1)
-# mesh = np.meshgrid(y_range, x_range)
-# temp = np.zeros(dst.shape)
-# temp[mesh] = 1
-# dst = np.multiply(dst, temp)
- 
-# close all open windows
+	segmented_image = drawCircle(segmented_image, (head_pt[0],head_pt[1]), 1)
+	cv2.imwrite('detected2.jpg', segmented_image)
+	left_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], -1,12)
+	right_fall = first_sharp_fall(segmented_image, head_pt[0], head_pt[1], 1,12)
+	right_shoulder = first_sharp_fall(segmented_image, right_fall[0], right_fall[1], 20,1.5)
+	left_shoulder = first_sharp_fall(segmented_image, left_fall[0], left_fall[1], -20,1.5)
+	segmented_image = drawCircle(segmented_image, (right_fall[0], right_fall[1]), 1)
+	segmented_image = drawCircle(segmented_image, (left_fall[0], left_fall[1]), 1)
+	segmented_image = drawCircle(segmented_image, (right_shoulder[0], right_shoulder[1]), 1)
+	segmented_image = drawCircle(segmented_image, (left_shoulder[0], left_shoulder[1]), 1)
+	cv2.imwrite('detected.jpg', segmented_image)
+
+	
+	dist1=getDistance(left_shoulder,left_fall)
+	dist1=pixel_to_distance(dist1,metre_pixel_x,metre_pixel_y)
+	dist2=getDistance(right_shoulder,right_fall)
+	dist2=pixel_to_distance(dist2,metre_pixel_x,metre_pixel_y)
+	dist3=getDistance(left_fall,right_fall)
+	dist3=pixel_to_distance(dist3,metre_pixel_x,metre_pixel_y)
+	dist=dist1+dist2+dist3
+	dist_tuple=dist1,dist2,dist3
+	print dist,dist_tuple
+	# dist=dist3+dist2+dist1
+	# pixel_to_distance(dist,metre_pixel_x,metre_pixel_y)	
+
+
+def main():
+
+	ap = argparse.ArgumentParser()
+	ap.add_argument("-i1", "--image1", required=True, help="Path to the checkboard_image")
+	ap.add_argument("-i2", "--image2", required=True, help="Path to the arm_spread_image")
+	ap.add_argument("-a", "--affine_mode", required=True, help="To perform Affine Corrections")
+	args = vars(ap.parse_args())
+	 
+	# load the image, clone it, and setup the mouse callback function
+	image = cv2.imread(args["image1"])
+	arm_spread_image=cv2.imread(args["image2"])
+	
+	print "image",image.shape
+	print "arm-spread",arm_spread_image.shape
+	affine_correct_flag= (args["affine_mode"])
+	# exit(1)
+
+	metre_pixel_x,metre_pixel_y,coordinate,affine_correct_parameters=analyze_chessboard(image,affine_correct_flag)
+	# print "Couldnt analyze"
+	segmented_image=segment.segmenter(image)
+	print "Segmentation Completed 1"
+
+	segmented_arm_image=segment.segmenter(arm_spread_image)
+	print "Segmentation Completed 2"
+
+	cv2.imwrite("first.jpg",segmented_image)
+	cv2.imwrite("second.jpg",segmented_arm_image)
+
+	block_cut = np.zeros(segmented_image.shape)
+	block_cut[coordinate[0][1]:coordinate[1][1],coordinate[0][0]:coordinate[1][0]] = 1
+	segmented_image=segmented_image*block_cut
+
+	if(affine_correct_flag=='True'):
+		print affine_correct_flag
+		segmented_image=affine_correct(segmented_image,affine_correct_parameters)
+		print "Affine Corrected"
+
+	# cv2.imwrite("affine_corrected.jpg",segmented_image)
+
+	measure_distance(segmented_image,metre_pixel_x,metre_pixel_y)
+
+if __name__=="__main__":
+	main()

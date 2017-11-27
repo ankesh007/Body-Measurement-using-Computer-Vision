@@ -20,9 +20,12 @@ def segment_ycrcb(orig, params, tola, tolb):
 
 
 def get_region(img):
-    r = cv2.selectROI("Select window of background", img=img)
+    # r = cv2.selectROI("Select window of background", img=img)
+    # print r
+    # exit(1)
     # r = cv2.selectROI("Select window of background", img=img,
     #                     fromCenter=False, showCrossair=False)
+    r=(80,80,100,100)
     cv2.destroyAllWindows()
     return r
 
@@ -106,7 +109,8 @@ def segmenter(img):
     cv2.namedWindow('controls')
     def nothing(gyxfdd):
         pass
-    cv2.createTrackbar('Keying tol low', 'controls', 30 , 100, nothing)
+
+    cv2.createTrackbar('Keying tol low', 'controls', 28 , 100, nothing)
     cv2.createTrackbar('Keying tol high', 'controls', 50, 200, nothing)
     cv2.createTrackbar('Mask low Thresh (x100)', 'controls', 5, 100, nothing)
     cv2.createTrackbar('Mask high Thresh (x100)', 'controls', 25, 100, nothing)
@@ -120,20 +124,22 @@ def segmenter(img):
     # cv2.imshow("nn",img)
     # cv2.waitKey(0)
 
-    # while True:
-    tola = cv2.getTrackbarPos('Keying tol low', 'controls')
-    tolb = cv2.getTrackbarPos('Keying tol high', 'controls')
-    low_thresh = cv2.getTrackbarPos('Mask low Thresh (x100)', 'controls')/100
-    high_thresh = cv2.getTrackbarPos('Mask high Thresh (x100)', 'controls')/100
-    erode_sz = cv2.getTrackbarPos('Erode size', 'controls')
-    sz = cv2.getTrackbarPos('BiLat size', 'controls')
-    space  = cv2.getTrackbarPos('BiLat space', 'controls')
-    sat_mul_lo  = cv2.getTrackbarPos('Sat mul low', 'controls')
-    sat_mul_hi  = cv2.getTrackbarPos('Sat mul high', 'controls')
-    scale_blur  = cv2.getTrackbarPos('Light mask strength', 'controls')
-    blur_size  = cv2.getTrackbarPos('Light mask size', 'controls')
+    while True:
+        tola = cv2.getTrackbarPos('Keying tol low', 'controls')
+        tolb = cv2.getTrackbarPos('Keying tol high', 'controls')
+        low_thresh = cv2.getTrackbarPos('Mask low Thresh (x100)', 'controls')/100
+        high_thresh = cv2.getTrackbarPos('Mask high Thresh (x100)', 'controls')/100
+        erode_sz = cv2.getTrackbarPos('Erode size', 'controls')
+        sz = cv2.getTrackbarPos('BiLat size', 'controls')
+        space  = cv2.getTrackbarPos('BiLat space', 'controls')
+        sat_mul_lo  = cv2.getTrackbarPos('Sat mul low', 'controls')
+        sat_mul_hi  = cv2.getTrackbarPos('Sat mul high', 'controls')
+        scale_blur  = cv2.getTrackbarPos('Light mask strength', 'controls')
+        blur_size  = cv2.getTrackbarPos('Light mask size', 'controls')
 
-    key_mask = get_mask( img, key_param[0], tola, tolb, low_thresh, high_thresh, sz, space, erode_sz)
+        key_mask = get_mask( img, key_param[0], tola, tolb, low_thresh, high_thresh, sz, space, erode_sz)
+        cv2.imshow("image",key_mask*255)
+        cv2.waitKey(300)
     cv2.imwrite('lolu.jpg',key_mask*255)
     return key_mask*255
 
