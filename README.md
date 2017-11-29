@@ -3,9 +3,9 @@
 
 The goal of assignment was to make ***real-world body part*** measurements using 2D images. The repository includes methods to measure ***shoulder distance, wrist-to-shoulder measurement, and waist approximation***. For implementation details and other nitty-gritty associated with the project, its recommended to lookup the attached presentation named: ***Presentation.pdf***.
 
-To run code, type linux shell:
+To run code, change to *src/ directory* and type linux shell:
 ```
-python code2.py -i1 <Image1> -i2 <Image2> -i3 <Image3> -a <Correction_mode>
+python code2.py -i1 <path to Image1> -i2 <path tp Image2> -i3 <path to Image3> -a <Correction_mode>
 ```
 
 
