@@ -5,7 +5,7 @@ The goal of assignment was to make ***real-world body part*** measurements using
 
 To run code, change to *src/ directory* and type linux shell:
 ```
-python code2.py -i1 <path to Image1> -i2 <path tp Image2> -i3 <path to Image3> -a <Correction_mode>
+python code2.py -i1 <path to Image1> -i2 <path to Image2> -i3 <path to Image3> -a <Correction_mode>
 ```
 
 
