@@ -2,3 +2,9 @@ ignore/
 src/*.jpg
 src/*.jpeg
 src/*.JPG
+TexFiles/*.log
+TexFiles/*.out
+TexFiles/*.snm
+TexFiles/*.toc
+TexFiles/*.aux
+TexFiles/*.nav
