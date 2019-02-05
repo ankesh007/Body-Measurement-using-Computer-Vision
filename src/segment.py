@@ -4,7 +4,7 @@ import argparse
 import time
 import sys
 def segment_ycrcb(orig, params, tola, tolb):
-    ycrcb_im = cv2.cvtColor(orig, cv2.COLOR_BGR2YCrCb)
+    ycrcb_im = cv2.cvtColor(orig, cv2.COLOR_BGR2YCR_CB)
     Cb_key, Cr_key = params
     blue = ycrcb_im[:, :, 2]
     red = ycrcb_im[:, :, 1]
@@ -31,7 +31,7 @@ def get_region(img):
 
 
 def get_params_ycrcb(img, region):
-    ycrcb_img = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb).astype(np.float32)
+    ycrcb_img = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB).astype(np.float32)
     cv2.destroyAllWindows()
     r = [int(x) for x in region]
     region = ycrcb_img[int(region[1]):int(
