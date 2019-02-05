@@ -12,14 +12,14 @@ python code2.py -i1 <path to Image1> -i2 <path to Image2> -i3 <path to Image3> -
 
 1. The code has been tested and developed in ***python2*** using ***Ubuntu 16.04***. OpenCV version `2.4.13.6`
 2. Images required for above code are specific. The details are given ***below***.
-3. Correction_mode parameter is the flag, which tells code whether to perform ***affine + metric correction*** on the image.
+3. Correction_mode parameter is the flag, which tells code whether to perform ***affine + metric correction*** on the image. Enter `True` to perform correction else `False`
 
 ## Additional Notes
 
-1. First 2 images that pops up is for finding `waist` circumference. Mark wrist ends on both the image.
+1. First 2 images that pops up is for finding `waist` circumference. Mark waist ends on both the image.
 2. Next 2 images are for calculating `shoulder` length. Mark fall near neck both sides in first image and mark shoulder, both-sides in second image.
-3. Repeat step 2 again. This is again calculating shoulder length.
-4. Mark both the `wrist`. 
+3. Repeat step 2 again. This is again calculating shoulder length for robustness from different image.
+4. Mark both the `wrist` - end of hands nearly in the next popped image. 
 5. While in 2,3,4 points, there is also projected points shown. You can manually mark or not mark.
 
 
